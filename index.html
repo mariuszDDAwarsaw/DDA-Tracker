@@ -186,6 +186,15 @@ input[type="number"] { width: 70px; flex: none; }
 .btn-danger { background:var(--red-bg);color:var(--red);border:1px solid var(--red-light); }
 .btn-secondary { background:var(--surface2);color:var(--text2);border:1px solid var(--border2); }
 
+
+/* ── DASHBOARD ACTION CARDS ── */
+.dash-action-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.75rem 1rem; margin-bottom:8px; }
+.dash-action-name { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:6px; }
+.dash-action-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.dash-stat { display:flex; flex-direction:column; gap:2px; }
+.dash-stat-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); }
+.dash-stat-val { font-size:12px; font-weight:500; color:var(--text2); }
+
 </style>
 </head>
 <body>
@@ -206,8 +215,8 @@ input[type="number"] { width: 70px; flex: none; }
 
       <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
-        <div class="section-title">Dashboard</div>
-        <div class="section-sub">Twoje postępy</div>
+        <div class="section-title">Dashboard DDA 12 Kroków</div>
+        <div class="section-sub">Twoje postępy overview</div>
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-label">Ukończone działania</div>
@@ -246,7 +255,7 @@ input[type="number"] { width: 70px; flex: none; }
           <div class="fp-label"><span>Postęp spotkań</span><span id="fp-label-right">0 / 64</span></div>
           <div class="fp-bar-bg"><div class="fp-bar-fill" id="fp-bar" style="width:0%"></div></div>
         </div>
-        <div style="font-family:'Lora',serif;font-size:16px;font-weight:500;margin-bottom:.85rem;">Działania</div>
+        <div class="section-sub" style="margin-bottom:.85rem">Działania overview</div>
         <div id="dash-steps"></div>
         <div class="app-footer">Designed with AI assistance by Mariusz DDA Wileńska (Warszawa)</div>
       </div>
@@ -269,7 +278,7 @@ input[type="number"] { width: 70px; flex: none; }
         <div class="section-title">Materiały DDA</div>
         <div class="section-sub">Literatura i teksty wspólnoty</div>
         <div style="text-align:right;margin-bottom:4px">
-          <button class="btn btn-secondary" style="font-size:11px;padding:.3rem .75rem" onclick="showAdminLogin()">⚙️ Admin</button>
+          <button class="btn btn-secondary" style="font-size:11px;padding:.3rem .75rem;opacity:0;pointer-events:none" onclick="showAdminLogin()">⚙️ Admin</button>
         </div>
         <div id="materials-list"></div>
         <div class="material-copyright">
@@ -797,6 +806,45 @@ function stepCardHTML(i, compact) {
   </div>`;
 }
 
+
+function dashCardHTML(i) {
+  const s = STEPS[i];
+  const done = countDone(i);
+  const pct = s.estSpotkania > 0 ? Math.round(done / s.estSpotkania * 100) : (done > 0 ? 100 : 0);
+
+  // Self-work for this action
+  const swEntries = getSelfWorkFor(i);
+  const swMins = swEntries.reduce((a,e) => a+(e.hours||0)*60+(e.minutes||0), 0);
+  const swH = Math.floor(swMins/60), swM = swMins%60;
+  const swStr = swH > 0 ? swH+'h '+swM+'min' : (swM > 0 ? swM+'min' : '—');
+
+  // Meditation for this action
+  const medEntries = getMeditationFor(i);
+  const medMins = medEntries.reduce((a,e) => a+(e.hours||0)*60+(e.minutes||0), 0);
+  const medH = Math.floor(medMins/60), medM = medMins%60;
+  const medStr = medH > 0 ? medH+'h '+medM+'min' : (medM > 0 ? medM+'min' : '—');
+
+  const statusColor = pct >= 100 ? 'var(--green)' : pct > 0 ? '#D4820F' : 'var(--text3)';
+
+  return `<div class="dash-action-card">
+    <div class="dash-action-name">${s.dzialanie}</div>
+    <div class="dash-action-stats">
+      <div class="dash-stat">
+        <span class="dash-stat-label">Postęp</span>
+        <span class="dash-stat-val" style="color:${statusColor}">${done}/${s.estSpotkania} · ${pct}%</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-stat-label">✍️ Praca</span>
+        <span class="dash-stat-val">${swStr}</span>
+      </div>
+      <div class="dash-stat">
+        <span class="dash-stat-label">🧘 Medyt.</span>
+        <span class="dash-stat-val">${medStr}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderDashboard() {
   const est = totalEst(), done = totalDoneMeet();
   const pct = est > 0 ? Math.round(done / est * 100) : 0;
@@ -818,7 +866,7 @@ function renderDashboard() {
   Object.values(meditation).forEach(entries => entries.forEach(e => { totalMedMins += (e.hours||0)*60 + (e.minutes||0); }));
   const medH = Math.floor(totalMedMins/60), medM = totalMedMins%60;
   document.getElementById('m-meditation').textContent = medH + 'h ' + medM + 'min';
-  document.getElementById('dash-steps').innerHTML = STEPS.map((_,i) => stepCardHTML(i, true)).join('');
+  document.getElementById('dash-steps').innerHTML = STEPS.map((_,i) => dashCardHTML(i)).join('');
 }
 
 function renderStepsList() {
