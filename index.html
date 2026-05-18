@@ -217,6 +217,7 @@ input[type="number"] { width: 70px; flex: none; }
       <div class="view active" id="view-dashboard">
         <div class="section-title">Dashboard DDA 12 Kroków</div>
         <div class="section-sub">Twoje postępy overview</div>
+        <!-- Rząd 1: Ukończone działania + W toku -->
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-label">Ukończone działania</div>
@@ -224,14 +225,22 @@ input[type="number"] { width: 70px; flex: none; }
             <div class="metric-sub" id="m-done-sub">z 27</div>
           </div>
           <div class="metric-card">
-            <div class="metric-label">Spotkania</div>
-            <div class="metric-value" id="m-meet">0</div>
-            <div class="metric-sub" id="m-meet-sub">z 64 est.</div>
-          </div>
-          <div class="metric-card">
             <div class="metric-label">W toku</div>
             <div class="metric-value" id="m-prog">0</div>
             <div class="metric-sub">aktywnych</div>
+          </div>
+        </div>
+        <!-- Pasek postępu działań -->
+        <div class="full-progress-wrap">
+          <div class="fp-label"><span>Postęp działań</span><span id="fp-actions-right">0 / 28</span></div>
+          <div class="fp-bar-bg"><div class="fp-bar-fill" id="fp-actions-bar" style="width:0%"></div></div>
+        </div>
+        <!-- Rząd 2: Spotkania + Postęp -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Spotkania</div>
+            <div class="metric-value" id="m-meet">0</div>
+            <div class="metric-sub" id="m-meet-sub">z 64 estymowanych</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Postęp</div>
@@ -239,6 +248,12 @@ input[type="number"] { width: 70px; flex: none; }
             <div class="metric-sub">ukończone</div>
           </div>
         </div>
+        <!-- Pasek postępu spotkań -->
+        <div class="full-progress-wrap">
+          <div class="fp-label"><span>Postęp spotkań</span><span id="fp-label-right">0 / 64</span></div>
+          <div class="fp-bar-bg"><div class="fp-bar-fill" id="fp-bar" style="width:0%"></div></div>
+        </div>
+        <!-- Rząd 3: Praca własna + Medytacja -->
         <div class="metrics-grid" style="margin-bottom:1rem">
           <div class="metric-card">
             <div class="metric-label">Praca własna łącznie</div>
@@ -250,10 +265,6 @@ input[type="number"] { width: 70px; flex: none; }
             <div class="metric-value" id="m-meditation">0h 0min</div>
             <div class="metric-sub">suma czasu medytacji</div>
           </div>
-        </div>
-        <div class="full-progress-wrap">
-          <div class="fp-label"><span>Postęp spotkań</span><span id="fp-label-right">0 / 64</span></div>
-          <div class="fp-bar-bg"><div class="fp-bar-fill" id="fp-bar" style="width:0%"></div></div>
         </div>
         <div class="section-sub" style="margin-bottom:.85rem">Działania overview</div>
         <div id="dash-steps"></div>
@@ -851,11 +862,19 @@ function renderDashboard() {
   document.getElementById('m-done').textContent = totalDoneSteps();
   document.getElementById('m-done-sub').textContent = 'z ' + STEPS.length;
   document.getElementById('m-meet').textContent = done;
-  document.getElementById('m-meet-sub').textContent = 'z ' + est + ' est.';
+  document.getElementById('m-meet-sub').textContent = 'z ' + est + ' estymowanych';
   document.getElementById('m-prog').textContent = totalInProg();
   document.getElementById('m-pct').textContent = pct + '%';
   document.getElementById('fp-bar').style.width = pct + '%';
   document.getElementById('fp-label-right').textContent = done + ' / ' + est;
+  // Action progress bar
+  const doneSteps = totalDoneSteps();
+  const totalSteps = STEPS.length;
+  const actionPct = totalSteps > 0 ? Math.round(doneSteps / totalSteps * 100) : 0;
+  const fpActBar = document.getElementById('fp-actions-bar');
+  const fpActRight = document.getElementById('fp-actions-right');
+  if (fpActBar) fpActBar.style.width = actionPct + '%';
+  if (fpActRight) fpActRight.textContent = doneSteps + ' / ' + totalSteps;
   // Self-work total
   let totalMins = 0;
   Object.values(selfWork).forEach(entries => entries.forEach(e => { totalMins += (e.hours||0)*60 + (e.minutes||0); }));
