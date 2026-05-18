@@ -190,7 +190,7 @@ input[type="number"] { width: 70px; flex: none; }
 /* ── DASHBOARD ACTION CARDS ── */
 .dash-action-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.75rem 1rem; margin-bottom:8px; }
 .dash-action-name { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:6px; }
-.dash-action-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.dash-action-stats { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; }
 .dash-stat { display:flex; flex-direction:column; gap:2px; }
 .dash-stat-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); }
 .dash-stat-val { font-size:12px; font-weight:500; color:var(--text2); }
@@ -254,7 +254,12 @@ input[type="number"] { width: 70px; flex: none; }
           <div class="fp-bar-bg"><div class="fp-bar-fill" id="fp-bar" style="width:0%"></div></div>
         </div>
         <!-- Rząd 3: Praca własna + Medytacja -->
-        <div class="metrics-grid" style="margin-bottom:1rem">
+        <div class="metrics-grid" style="margin-bottom:1rem;grid-template-columns:1fr 1fr 1fr">
+          <div class="metric-card">
+            <div class="metric-label">Spotkania łącznie</div>
+            <div class="metric-value" id="m-meet-total">0h 0min</div>
+            <div class="metric-sub">suma czasu spotkań</div>
+          </div>
           <div class="metric-card">
             <div class="metric-label">Praca własna łącznie</div>
             <div class="metric-value" id="m-selfwork">0h 0min</div>
@@ -727,8 +732,36 @@ let currentStepId = null;
 let prevView = 'dashboard';
 let currentDetailTab = 'spotkania';
 
-function getMeetingsFor(id) { return (meetings[id] || []).sort(); }
+function getMeetingsFor(id) { return (meetings[id] || []).sort((a,b) => { const da = typeof a === 'object' ? a.date : a; const db = typeof b === 'object' ? b.date : b; return da.localeCompare(db); }); }
 function countDone(id) { return getMeetingsFor(id).length; }
+function getMeetingDate(m) { return typeof m === 'object' ? m.date : m; }
+function getMeetingDisplay(m) {
+  if (typeof m === 'string') return '';
+  let extra = '';
+  if (m.timeFrom && m.timeTo) extra = ' · ' + m.timeFrom + '–' + m.timeTo;
+  else if (m.timeFrom) extra = ' · od ' + m.timeFrom;
+  else if (m.timeTo) extra = ' · do ' + m.timeTo;
+  if (m.note) extra += (extra ? ' · ' : ' · ') + m.note;
+  return extra;
+}
+
+function getMeetingMinutes(m) {
+  // Calculate duration in minutes from timeFrom and timeTo
+  if (typeof m === 'string' || !m.timeFrom || !m.timeTo) return 0;
+  const [fh, fm] = m.timeFrom.split(':').map(Number);
+  const [th, tm] = m.timeTo.split(':').map(Number);
+  const from = fh * 60 + fm;
+  const to = th * 60 + tm;
+  return to > from ? to - from : 0;
+}
+
+function totalMeetingMinutes() {
+  let total = 0;
+  STEPS.forEach((_,i) => {
+    getMeetingsFor(i).forEach(m => { total += getMeetingMinutes(m); });
+  });
+  return total;
+}
 function getSelfWorkFor(id) { return (selfWork[id] || []); }
 function getMeditationFor(id) { return (meditation[id] || []); }
 
@@ -823,6 +856,12 @@ function dashCardHTML(i) {
   const done = countDone(i);
   const pct = s.estSpotkania > 0 ? Math.round(done / s.estSpotkania * 100) : (done > 0 ? 100 : 0);
 
+  // Meetings time for this action
+  const meetEntries = getMeetingsFor(i);
+  const meetMins = meetEntries.reduce((a,m) => a + getMeetingMinutes(m), 0);
+  const meetH = Math.floor(meetMins/60), meetMin = meetMins%60;
+  const meetStr = meetMins > 0 ? (meetH > 0 ? meetH+'h '+meetMin+'min' : meetMin+'min') : meetEntries.length > 0 ? meetEntries.length+' spt.' : '—';
+
   // Self-work for this action
   const swEntries = getSelfWorkFor(i);
   const swMins = swEntries.reduce((a,e) => a+(e.hours||0)*60+(e.minutes||0), 0);
@@ -845,6 +884,10 @@ function dashCardHTML(i) {
         <span class="dash-stat-val" style="color:${statusColor}">${done}/${s.estSpotkania} · ${pct}%</span>
       </div>
       <div class="dash-stat">
+        <span class="dash-stat-label">🤝 Spotkania</span>
+        <span class="dash-stat-val">${meetStr}</span>
+      </div>
+      <div class="dash-stat">
         <span class="dash-stat-label">✍️ Praca</span>
         <span class="dash-stat-val">${swStr}</span>
       </div>
@@ -859,10 +902,16 @@ function dashCardHTML(i) {
 function renderDashboard() {
   const est = totalEst(), done = totalDoneMeet();
   const pct = est > 0 ? Math.round(done / est * 100) : 0;
-  document.getElementById('m-done').textContent = totalDoneSteps();
+  const doneStepsVal = totalDoneSteps();
+  const doneStepsPct = STEPS.length > 0 ? Math.round(doneStepsVal / STEPS.length * 100) : 0;
+  document.getElementById('m-done').textContent = doneStepsVal + ' · ' + doneStepsPct + '%';
   document.getElementById('m-done-sub').textContent = 'z ' + STEPS.length;
   document.getElementById('m-meet').textContent = done;
   document.getElementById('m-meet-sub').textContent = 'z ' + est + ' estymowanych';
+  const meetTotalMins = totalMeetingMinutes();
+  const mtH = Math.floor(meetTotalMins/60), mtM = meetTotalMins%60;
+  const mtEl = document.getElementById('m-meet-total');
+  if (mtEl) mtEl.textContent = mtH + 'h ' + mtM + 'min';
   document.getElementById('m-prog').textContent = totalInProg();
   document.getElementById('m-pct').textContent = pct + '%';
   document.getElementById('fp-bar').style.width = pct + '%';
@@ -971,14 +1020,17 @@ function renderDetail(id) {
 
   const meetingsHTML = meetList.length === 0
     ? '<div class="empty">Brak spotkań.<br>Dodaj pierwsze spotkanie powyżej.</div>'
-    : meetList.map((d, idx) => `
-      <div class="meeting-row">
+    : meetList.map((m, idx) => {
+      const d = getMeetingDate(m);
+      const extra = getMeetingDisplay(m);
+      return `<div class="meeting-row">
         <div>
-          <div class="meeting-date">${formatDate(d)}</div>
+          <div class="meeting-date">${formatDate(d)}${extra}</div>
           <div class="meeting-num">Spotkanie #${idx + 1}</div>
         </div>
-        <button class="btn btn-sm" onclick="removeMeeting(${id}, '${d}')">Usuń</button>
-      </div>`).join('');
+        <button class="btn btn-sm" onclick="removeMeeting(${id}, ${idx})">Usuń</button>
+      </div>`;
+    }).join('');
 
   const selfWorkHTML = swList.length === 0
     ? '<div class="empty">Brak zapisów.<br>Dodaj pierwszą pracę własną powyżej.</div>'
@@ -1084,8 +1136,13 @@ function renderDetail(id) {
     <div class="tab-panel ${currentDetailTab==='spotkania'?'active':''}" id="tab-panel-spotkania">
       <div class="add-meeting-wrap">
         <div class="card-title">Dodaj spotkanie ze sponsorem</div>
-        <div class="add-row-2col">
-          <input type="date" id="meeting-input" />
+        <div class="add-row">
+          <input type="date" id="meeting-input" style="flex:2" />
+          <input type="time" id="meeting-time-from" placeholder="Od" />
+          <input type="time" id="meeting-time-to" placeholder="Do" />
+        </div>
+        <div class="add-row-2col" style="margin-bottom:.5rem">
+          <input type="text" id="meeting-note-input" placeholder="Notatka (opcjonalnie)" style="flex:1;padding:.65rem .9rem;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);background:var(--surface);outline:none;" />
           <button class="btn btn-primary" onclick="addMeeting()">Dodaj</button>
         </div>
         <div id="meetings-list">${meetingsHTML}</div>
@@ -1128,6 +1185,12 @@ function renderDetail(id) {
   const today = new Date().toISOString().split('T')[0];
   const inp = document.getElementById('meeting-input');
   if (inp) inp.value = today;
+  const mtf = document.getElementById('meeting-time-from');
+  const mtt = document.getElementById('meeting-time-to');
+  const mni = document.getElementById('meeting-note-input');
+  if (mtf) mtf.value = '';
+  if (mtt) mtt.value = '';
+  if (mni) mni.value = '';
   const swDate = document.getElementById('sw-date-input');
   if (swDate) swDate.value = today;
   const swH = document.getElementById('sw-hours-input');
@@ -1146,18 +1209,22 @@ function addMeeting() {
   if (currentStepId === null) return;
   const inp = document.getElementById('meeting-input');
   if (!inp || !inp.value) { showToast('Wybierz datę'); return; }
+  const timeFrom = document.getElementById('meeting-time-from')?.value || '';
+  const timeTo = document.getElementById('meeting-time-to')?.value || '';
+  const note = document.getElementById('meeting-note-input')?.value.trim() || '';
   if (!meetings[currentStepId]) meetings[currentStepId] = [];
-  if (meetings[currentStepId].includes(inp.value)) { showToast('To spotkanie już istnieje'); return; }
-  meetings[currentStepId].push(inp.value);
+  // Store as object with date + optional time + note
+  const entry = { date: inp.value, timeFrom, timeTo, note };
+  meetings[currentStepId].push(entry);
   saveData('dda_meetings_v2', meetings);
   renderDetail(currentStepId);
   updateTopBar();
   showToast('Spotkanie dodane ✓');
 }
 
-function removeMeeting(id, date) {
+function removeMeeting(id, idx) {
   if (!meetings[id]) return;
-  meetings[id] = meetings[id].filter(d => d !== date);
+  meetings[id].splice(idx, 1);
   saveData('dda_meetings_v2', meetings);
   renderDetail(id);
   updateTopBar();
