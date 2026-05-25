@@ -192,6 +192,15 @@ input[type="number"] { width: 70px; flex: none; }
 .dash-action-name { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:6px; }
 .dash-action-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
 .dash-action-stats.full { grid-template-columns:repeat(7,1fr); }
+/* New paired layout for dashboard overview */
+.dash-action-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.dash-action-progress { font-size:11px; font-weight:500; color:var(--text3); }
+.dash-action-pairs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.dash-pair { background:var(--surface2); border-radius:8px; padding:.45rem .5rem; display:flex; flex-direction:column; gap:2px; }
+.dash-pair-primary { display:flex; flex-direction:column; gap:1px; }
+.dash-pair-secondary { display:flex; flex-direction:column; gap:1px; border-top:1px solid var(--border); padding-top:3px; margin-top:2px; }
+.dash-pair-label { font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dash-pair-val { font-size:12px; font-weight:500; color:var(--text2); }
 .dash-stat { display:flex; flex-direction:column; gap:2px; }
 .dash-stat-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); }
 .dash-stat-val { font-size:12px; font-weight:500; color:var(--text2); }
@@ -929,37 +938,45 @@ function dashCardHTML(i) {
   const medStr = medH > 0 ? medH+'h '+medM+'min' : (medM > 0 ? medM+'min' : '—');
 
   const statusColor = pct >= 100 ? 'var(--green)' : pct > 0 ? '#D4820F' : 'var(--text3)';
+  const mitingCount = getMitingsFor(i).length;
+  const callCount = getPhoneCallsFor(i).length;
+  const prayerCount = getPrayersFor(i).length;
 
   return `<div class="dash-action-card">
-    <div class="dash-action-name">${s.dzialanie}</div>
-    <div class="dash-action-stats full">
-      <div class="dash-stat">
-        <span class="dash-stat-label">Postęp</span>
-        <span class="dash-stat-val" style="color:${statusColor}">${done}/${s.estSpotkania} · ${pct}%</span>
+    <div class="dash-action-header">
+      <div class="dash-action-name" style="margin-bottom:0">${s.dzialanie}</div>
+      <span class="dash-action-progress" style="color:${statusColor}">${done}/${s.estSpotkania} · ${pct}%</span>
+    </div>
+    <div class="dash-action-pairs">
+      <div class="dash-pair">
+        <div class="dash-pair-primary">
+          <span class="dash-pair-label">🤝 Spotkanie</span>
+          <span class="dash-pair-val">${meetStr}</span>
+        </div>
+        <div class="dash-pair-secondary">
+          <span class="dash-pair-label">👥 Miting</span>
+          <span class="dash-pair-val">${mitingCount > 0 ? mitingCount : '—'}</span>
+        </div>
       </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">🤝 Spotkanie</span>
-        <span class="dash-stat-val">${meetStr}</span>
+      <div class="dash-pair">
+        <div class="dash-pair-primary">
+          <span class="dash-pair-label">✍️ Praca</span>
+          <span class="dash-pair-val">${swStr}</span>
+        </div>
+        <div class="dash-pair-secondary">
+          <span class="dash-pair-label">📞 Rozmowa</span>
+          <span class="dash-pair-val">${callCount > 0 ? callCount : '—'}</span>
+        </div>
       </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">✍️ Praca</span>
-        <span class="dash-stat-val">${swStr}</span>
-      </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">🧘 Medyt.</span>
-        <span class="dash-stat-val">${medStr}</span>
-      </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">🙏 Modlitwa</span>
-        <span class="dash-stat-val">${getPrayersFor(i).length > 0 ? getPrayersFor(i).length : '—'}</span>
-      </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">📞 Rozmowa</span>
-        <span class="dash-stat-val">${getPhoneCallsFor(i).length > 0 ? getPhoneCallsFor(i).length : '—'}</span>
-      </div>
-      <div class="dash-stat">
-        <span class="dash-stat-label">👥 Miting</span>
-        <span class="dash-stat-val">${getMitingsFor(i).length > 0 ? getMitingsFor(i).length : '—'}</span>
+      <div class="dash-pair">
+        <div class="dash-pair-primary">
+          <span class="dash-pair-label">🧘 Medyt.</span>
+          <span class="dash-pair-val">${medStr}</span>
+        </div>
+        <div class="dash-pair-secondary">
+          <span class="dash-pair-label">🙏 Modlitwa</span>
+          <span class="dash-pair-val">${prayerCount > 0 ? prayerCount : '—'}</span>
+        </div>
       </div>
     </div>
   </div>`;
